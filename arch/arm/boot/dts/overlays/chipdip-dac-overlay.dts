@@ -1,0 +1,39 @@
+/*
+ * Device Tree overlay for ChipDip I2S master DAC
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+    
+    fragment@0 {
+		target = <&i2s>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+    
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            spdif-transmitter {
+                #address-cells = <0>;
+                #size-cells = <0>;
+                #sound-dai-cells = <0>;
+                compatible = "linux,spdif-dit";
+                status = "okay";
+            };
+        };
+    };
+    
+    fragment@2 {
+		target = <&sound>;
+		__overlay__ {
+			compatible = "chipdip,chipdip-dac";
+			i2s-controller = <&i2s>;
+			status = "okay";
+		};
+	};
+}; 
