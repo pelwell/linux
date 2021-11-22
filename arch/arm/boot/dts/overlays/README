@@ -1845,6 +1845,8 @@ Params: rotation                Mounting rotation of the camera sensor (0 or
                                 2 = external, default external)
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default on)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   imx290
@@ -1880,6 +1882,8 @@ Params: rotation                Mounting rotation of the camera sensor (0 or
                                 2 = external, default external)
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default on)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   imx477
@@ -1906,6 +1910,8 @@ Params: rotation                Mounting rotation of the camera sensor (0 or
                                 2 = external, default external)
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default on)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   iqaudio-codec
@@ -1972,6 +1978,8 @@ Info:   Infineon irs1125 TOF camera module.
 Load:   dtoverlay=irs1125,<param>=<val>
 Params: media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default off)
+Params: cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   jedec-spi-nor
@@ -2385,6 +2393,8 @@ Params: rotation                Mounting rotation of the camera sensor (0 or
                                 2 = external, default external)
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default on)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   ov7251
@@ -2398,6 +2408,8 @@ Params: rotation                Mounting rotation of the camera sensor (0 or
                                 2 = external, default external)
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default off)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   ov9281
@@ -2411,6 +2423,8 @@ Params: rotation                Mounting rotation of the camera sensor (0 or
                                 2 = external, default external)
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default on)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   papirus
@@ -3393,6 +3407,8 @@ Params: 4lane                   Use 4 lanes (only applicable to Compute Modules
                                 are supported by the driver.
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default off)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   tc358743-audio

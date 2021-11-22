@@ -4,57 +4,6 @@
 /{
 	compatible = "brcm,bcm2835";
 
-	fragment@0 {
-		target = <&i2c_csi_dsi>;
-		__overlay__ {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			status = "okay";
-
-			imx477: imx477@1a {
-				reg = <0x1a>;
-				status = "okay";
-
-				clocks = <&cam1_clk>;
-				clock-names = "xclk";
-
-				VANA-supply = <&cam1_reg>;	/* 2.8v */
-				VDIG-supply = <&cam_dummy_reg>;	/* 1.05v */
-				VDDL-supply = <&cam_dummy_reg>;	/* 1.8v */
-
-				rotation = <180>;
-				orientation = <2>;
-
-				port {
-					imx477_0: endpoint {
-						remote-endpoint = <&csi1_ep>;
-						clock-lanes = <0>;
-						data-lanes = <1 2>;
-						clock-noncontinuous;
-						link-frequencies =
-							/bits/ 64 <450000000>;
-					};
-				};
-			};
-		};
-	};
-
-	fragment@1 {
-		target = <&csi1>;
-		__overlay__ {
-			status = "okay";
-
-			port {
-				csi1_ep: endpoint {
-					remote-endpoint = <&imx477_0>;
-					clock-lanes = <0>;
-					data-lanes = <1 2>;
-					clock-noncontinuous;
-				};
-			};
-		};
-	};
-
 	fragment@2 {
 		target = <&i2c0if>;
 		__overlay__ {
@@ -62,9 +11,9 @@
 		};
 	};
 
-	fragment@3 {
+	frag3: fragment@3 {
 		target = <&cam1_clk>;
-		__overlay__ {
+		cam_clk: __overlay__ {
 			clock-frequency = <24000000>;
 			status = "okay";
 		};
@@ -77,17 +26,96 @@
 		};
 	};
 
-	fragment@5 {
+	frag5: fragment@5 {
 		target = <&cam1_reg>;
-		__overlay__ {
+		cam_reg: __overlay__ {
 			startup-delay-us = <300000>;
 		};
 	};
 
 	fragment@6 {
-		target = <&csi1>;
+		target = <&csi>;
 		__overlay__ {
 			brcm,media-controller;
+		};
+	};
+
+	frag100: fragment@100 {
+		target = <&i2c_csi_dsi>;
+		i2c_bus: __overlay__ {
+			status = "okay";
+		};
+	};
+
+	frag101: fragment@101 {
+		target = <&csi1>;
+		csi: __overlay__ {
+			status = "okay";
+		};
+	};
+
+	frag102: fragment@102 {
+		target = <&imx477>;
+		__overlay__ {
+			clocks = <&cam1_clk>;
+			VANA-supply = <&cam1_reg>;	/* 2.8v */
+		};
+	};
+
+	frag103: fragment@103 {
+		target = <&imx477>;
+		__dormant__ {
+			clocks = <&cam0_clk>;
+			VANA-supply = <&cam0_reg>;	/* 2.8v */
+		};
+	};
+
+	fragment@200 {
+		target = <&i2c_bus>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			imx477: imx477@1a {
+				reg = <0x1a>;
+				status = "okay";
+
+				clock-names = "xclk";
+
+				VDIG-supply = <&cam_dummy_reg>;	/* 1.05v */
+				VDDL-supply = <&cam_dummy_reg>;	/* 1.8v */
+
+				rotation = <180>;
+				orientation = <2>;
+
+				port {
+					imx477_0: endpoint {
+						remote-endpoint = <&csi_ep>;
+						clock-lanes = <0>;
+						data-lanes = <1 2>;
+						clock-noncontinuous;
+						link-frequencies =
+							/bits/ 64 <450000000>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@201 {
+		target = <&csi>;
+		__overlay__ {
+			status = "okay";
+
+			port {
+				csi_ep: endpoint {
+					remote-endpoint = <&imx477_0>;
+					clock-lanes = <0>;
+					data-lanes = <1 2>;
+					clock-noncontinuous;
+				};
+			};
 		};
 	};
 
@@ -95,5 +123,10 @@
 		rotation = <&imx477>,"rotation:0";
 		orientation = <&imx477>,"orientation:0";
 		media-controller = <0>,"=6";
+		cam0 = <&frag100>, "target:0=",<&i2c_vc>,
+		       <&frag101>, "target:0=",<&csi0>,
+		       <&frag3>, "target:0=",<&cam0_clk>,
+		       <&frag5>, "target:0=",<&cam0_reg>,
+		       <0>, "-102+103";
 	};
 };
