@@ -15,7 +15,7 @@
 		};
 	};
 
-	frag1: fragment@1 {
+	clk_frag: fragment@1 {
 		target = <&cam1_clk>;
 		__overlay__ {
 			status = "okay";
@@ -30,45 +30,8 @@
 		};
 	};
 
-	fragment@3 {
-		target = <&csi>;
-		__overlay__ {
-			brcm,media-controller;
-		};
-	};
-
-	frag100: fragment@100 {
+	i2c_frag: fragment@100 {
 		target = <&i2c_csi_dsi>;
-		i2c_bus: __overlay__ {
-			status = "okay";
-		};
-	};
-
-	frag101: fragment@101 {
-		target = <&csi1>;
-		csi: __overlay__ {
-			status = "okay";
-		};
-	};
-
-	frag102: fragment@102 {
-		target = <&imx219>;
-		__overlay__ {
-			clocks = <&cam1_clk>;
-			VANA-supply = <&cam1_reg>;	/* 2.8v */
-		};
-	};
-
-	frag103: fragment@103 {
-		target = <&imx219>;
-		__dormant__ {
-			clocks = <&cam0_clk>;
-			VANA-supply = <&cam0_reg>;	/* 2.8v */
-		};
-	};
-
-	fragment@200 {
-		target = <&i2c_bus>;
 		__overlay__ {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -79,8 +42,10 @@
 				reg = <0x10>;
 				status = "okay";
 
+				clocks = <&cam1_clk>;
 				clock-names = "xclk";
 
+				VANA-supply = <&cam1_reg>;	/* 2.8v */
 				VDIG-supply = <&cam_dummy_reg>;	/* 1.8v */
 				VDDL-supply = <&cam_dummy_reg>;	/* 1.2v */
 
@@ -101,10 +66,11 @@
 		};
 	};
 
-	fragment@201 {
-		target = <&csi>;
-		__overlay__ {
+	csi_frag: fragment@101 {
+		target = <&csi1>;
+		csi: __overlay__ {
 			status = "okay";
+			brcm,media-controller;
 
 			port {
 				csi_ep: endpoint {
@@ -120,10 +86,11 @@
 	__overrides__ {
 		rotation = <&imx219>,"rotation:0";
 		orientation = <&imx219>,"orientation:0";
-		media-controller = <0>,"=5";
-		cam0 = <&frag100>, "target:0=",<&i2c_vc>,
-		       <&frag101>, "target:0=",<&csi0>,
-		       <&frag1>, "target:0=",<&cam0_clk>,
-		       <0>, "-102+103";
+		media-controller = <&csi>,"brcm,media-controller?";
+		cam0 = <&i2c_frag>, "target:0=",<&i2c_vc>,
+		       <&csi_frag>, "target:0=",<&csi0>,
+		       <&clk_frag>, "target:0=",<&cam0_clk>,
+		       <&imx219>, "clocks:0=",<&cam0_clk>,
+		       <&imx219>, "VANA-supply:0=",<&cam0_reg>;
 	};
 };

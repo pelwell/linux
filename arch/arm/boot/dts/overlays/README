@@ -1869,6 +1869,8 @@ Params: 4lane                   Enable 4 CSI2 lanes. This requires a Compute
                                 180, default 0)
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default on)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   imx378
@@ -1897,6 +1899,8 @@ Params: rotation                Mounting rotation of the camera sensor (0 or
                                 2 = external, default external)
         media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default on)
+        cam0                    Adopt the default configuration for CAM0 on a
+                                Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
 Name:   imx519
@@ -1978,7 +1982,7 @@ Info:   Infineon irs1125 TOF camera module.
 Load:   dtoverlay=irs1125,<param>=<val>
 Params: media-controller        Configure use of Media Controller API for
                                 configuring the sensor (default off)
-Params: cam0                    Adopt the default configuration for CAM0 on a
+        cam0                    Adopt the default configuration for CAM0 on a
                                 Compute Module (CSI0, i2c_vc, and cam0_reg).
 
 
