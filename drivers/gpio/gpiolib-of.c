@@ -329,6 +329,9 @@ struct gpio_desc *gpiod_get_from_of_node(const struct device_node *node,
 	open_drain = flags & OF_GPIO_OPEN_DRAIN;
 	transitory = flags & OF_GPIO_TRANSITORY;
 
+	if (flags & OF_GPIO_NONEXCLUSIVE)
+		dflags |= GPIOD_FLAGS_BIT_NONEXCLUSIVE;
+
 	ret = gpiod_request(desc, label);
 	if (ret == -EBUSY && (dflags & GPIOD_FLAGS_BIT_NONEXCLUSIVE))
 		return desc;
