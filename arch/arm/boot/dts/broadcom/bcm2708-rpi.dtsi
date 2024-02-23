@@ -15,10 +15,25 @@
 		i2c2 = &i2c2;
 	};
 
+	nvmem_otp: nvmem_otp {
+		compatible = "raspberrypi,rpi-otp";
+		firmware = <&firmware>;
+		reg = <0 192>;
+		status = "okay";
+	};
+
+	nvmem_customer: nvmem_customer {
+		compatible = "raspberrypi,rpi-otp";
+		firmware = <&firmware>;
+		reg = <1 8>;
+		status = "okay";
+	};
+
 	__overrides__ {
 		hdmi = <&hdmi>,"status";
 		i2c2_iknowwhatimdoing = <&i2c2>,"status";
 		i2c2_baudrate = <&i2c2>,"clock-frequency:0";
+		nvmem_customer_writeable = <&nvmem_customer>,"writeable?";
 		sd = <&sdhost>,"status";
 		sd_poll_once = <&sdhost>,"non-removable?";
 	};
