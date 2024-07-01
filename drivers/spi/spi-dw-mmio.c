@@ -229,6 +229,16 @@ static int dw_spi_hssi_init(struct platform_device *pdev,
 	return 0;
 }
 
+static int dw_spi_qspi_init(struct platform_device *pdev,
+			    struct dw_spi_mmio *dwsmmio)
+{
+	dwsmmio->dws.caps = DW_SPI_CAP_QUAD_SPI;
+
+	dw_spi_dma_setup_generic(&dwsmmio->dws);
+
+	return 0;
+}
+
 static int dw_spi_intel_init(struct platform_device *pdev,
 			     struct dw_spi_mmio *dwsmmio)
 {
@@ -422,6 +432,7 @@ static void dw_spi_mmio_remove(struct platform_device *pdev)
 
 static const struct of_device_id dw_spi_mmio_of_match[] = {
 	{ .compatible = "snps,dw-apb-ssi", .data = dw_spi_pssi_init},
+	{ .compatible = "snps,dw-apb-qspi", .data = dw_spi_qspi_init},
 	{ .compatible = "mscc,ocelot-spi", .data = dw_spi_mscc_ocelot_init},
 	{ .compatible = "mscc,jaguar2-spi", .data = dw_spi_mscc_jaguar2_init},
 	{ .compatible = "amazon,alpine-dw-apb-ssi", .data = dw_spi_alpine_init},

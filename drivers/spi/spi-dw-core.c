@@ -290,6 +290,8 @@ static u32 dw_spi_prepare_cr0(struct dw_spi *dws, struct spi_device *spi)
 		/* CTRLR0[11] Shift Register Loop */
 		if (spi->mode & SPI_LOOP)
 			cr0 |= DW_PSSI_CTRLR0_SRL;
+		if (spi->mode & SPI_CS_WORD)
+			cr0 |= DW_PSSI_CTRLR0_SSTE;
 	} else {
 		/* CTRLR0[ 7: 6] Frame Format */
 		cr0 |= FIELD_PREP(DW_HSSI_CTRLR0_FRF_MASK, DW_SPI_CTRLR0_FRF_MOTO_SPI);
@@ -333,6 +335,20 @@ void dw_spi_update_config(struct dw_spi *dws, struct spi_device *spi,
 	else
 		/* CTRLR0[11:10] Transfer Mode */
 		cr0 |= FIELD_PREP(DW_HSSI_CTRLR0_TMOD_MASK, cfg->tmode);
+
+	if (dws->caps & DW_SPI_CAP_QUAD_SPI) {
+		u32 spi_cr0 = 0;
+
+		/* SPI_FRF -> bits for data field */
+		cr0 |= FIELD_PREP(DW_PSSI_CTRLR0_SPI_FRF_MASK, cfg->spi_frf);
+		/* SPI_CTRLR0 -> TRANS_TYPE + INST_L + ADDR_L + WAIT_CYCLES */
+		spi_cr0 |= FIELD_PREP(DW_SPI_SPI_CTRLR0_TRANS_TYPE_MASK, cfg->trans_type);
+		spi_cr0 |= FIELD_PREP(DW_SPI_SPI_CTRLR0_ADDR_L_MASK, cfg->addr_l);
+		spi_cr0 |= FIELD_PREP(DW_SPI_SPI_CTRLR0_INST_L_MASK, cfg->inst_l);
+		spi_cr0 |= FIELD_PREP(DW_SPI_SPI_CTRLR0_WAIT_CYCLES_MASK, cfg->wait_cycles);
+
+		dw_writel(dws, DW_SPI_SPI_CTRLR0, spi_cr0);
+	}
 
 	dw_writel(dws, DW_SPI_CTRLR0, cr0);
 
@@ -475,6 +491,11 @@ static int dw_spi_transfer_one(struct spi_controller *host,
 		}
 	}
 
+	cfg.spi_frf = (buswidth == 8) ? DW_SPI_SPI_FRF_OCTAL :
+		      (buswidth == 4) ? DW_SPI_SPI_FRF_QUAD :
+		      (buswidth == 2) ? DW_SPI_SPI_FRF_DUAL :
+		      DW_SPI_SPI_FRF_STD;
+
 	/* Ensure the data above is visible for all CPUs */
 	smp_mb();
 
@@ -531,8 +552,20 @@ static int dw_spi_adjust_mem_op_size(struct spi_mem *mem, struct spi_mem_op *op)
 static bool dw_spi_supports_mem_op(struct spi_mem *mem,
 				   const struct spi_mem_op *op)
 {
-	if (op->data.buswidth > 1 || op->addr.buswidth > 1 ||
-	    op->dummy.buswidth > 1 || op->cmd.buswidth > 1)
+	struct dw_spi *dws = spi_controller_get_devdata(mem->spi->controller);
+	u8 cmd_width = op->cmd.buswidth;
+	u8 addr_width = op->addr.buswidth;
+	u8 dummy_width = op->dummy.buswidth;
+	u8 data_width = op->data.buswidth;
+
+	if (op->data.nbytes && data_width != 1 &&
+	    !(dws->caps & DW_SPI_CAP_QUAD_SPI))
+		return false;
+	if (op->data.nbytes && data_width != 0 && data_width != 1 && data_width != 2 && data_width != 4)
+		return false;
+	if ((op->dummy.nbytes && (dummy_width != data_width && dummy_width != 1)) ||
+	    (op->addr.nbytes && (addr_width != dummy_width && addr_width != 1)) ||
+	    (op->cmd.nbytes && (cmd_width != addr_width && cmd_width != 1)))
 		return false;
 
 	return spi_mem_default_supports_op(mem, op);
@@ -542,12 +575,16 @@ static int dw_spi_init_mem_buf(struct dw_spi *dws, const struct spi_mem_op *op)
 {
 	unsigned int i, j, len;
 	u8 *out;
+	u8 dummy_padding;
 
 	/*
 	 * Calculate the total length of the EEPROM command transfer and
 	 * either use the pre-allocated buffer or create a temporary one.
 	 */
-	len = op->cmd.nbytes + op->addr.nbytes + op->dummy.nbytes;
+	dummy_padding = op->dummy.nbytes;
+	if (dws->caps & DW_SPI_CAP_QUAD_SPI)
+		dummy_padding = 0;
+	len = op->cmd.nbytes + op->addr.nbytes + dummy_padding;
 	if (op->data.dir == SPI_MEM_DATA_OUT)
 		len += op->data.nbytes;
 
@@ -568,7 +605,7 @@ static int dw_spi_init_mem_buf(struct dw_spi *dws, const struct spi_mem_op *op)
 		out[i] = DW_SPI_GET_BYTE(op->cmd.opcode, op->cmd.nbytes - i - 1);
 	for (j = 0; j < op->addr.nbytes; ++i, ++j)
 		out[i] = DW_SPI_GET_BYTE(op->addr.val, op->addr.nbytes - j - 1);
-	for (j = 0; j < op->dummy.nbytes; ++i, ++j)
+	for (j = 0; j < dummy_padding; ++i, ++j)
 		out[i] = 0x0;
 
 	if (op->data.dir == SPI_MEM_DATA_OUT)
@@ -731,6 +768,16 @@ static int dw_spi_exec_mem_op(struct spi_mem *mem, const struct spi_mem_op *op)
 	} else {
 		cfg.tmode = DW_SPI_CTRLR0_TMOD_TO;
 	}
+	cfg.spi_frf = (op->data.buswidth == 8) ? DW_SPI_SPI_FRF_OCTAL :
+		      (op->data.buswidth == 4) ? DW_SPI_SPI_FRF_QUAD :
+		      (op->data.buswidth == 2) ? DW_SPI_SPI_FRF_DUAL :
+		      DW_SPI_SPI_FRF_STD;
+	cfg.trans_type = (op->cmd.buswidth > 1) ? DW_SPI_SPI_CTRLR0_TRANS_TYPE_EIEA :
+			 (op->addr.buswidth > 1) ? DW_SPI_SPI_CTRLR0_TRANS_TYPE_SIEA :
+			 DW_SPI_SPI_CTRLR0_TRANS_TYPE_SISA;
+	cfg.inst_l = DW_SPI_SPI_CTRLR0_INST_L(op->cmd.nbytes * 8);
+	cfg.addr_l = DW_SPI_SPI_CTRLR0_ADDR_L(op->addr.nbytes * 8);
+	cfg.wait_cycles = op->dummy.nbytes / op->dummy.buswidth;
 
 	dw_spi_enable_chip(dws, 0);
 
@@ -960,6 +1007,9 @@ int dw_spi_add_host(struct device *dev, struct dw_spi *dws)
 
 	host->use_gpio_descriptors = true;
 	host->mode_bits = SPI_CPOL | SPI_CPHA | SPI_LOOP;
+	if (dws->caps & DW_SPI_CAP_QUAD_SPI)
+		host->mode_bits |= SPI_CS_WORD | SPI_TX_DUAL |
+			SPI_TX_QUAD | SPI_RX_DUAL | SPI_RX_QUAD;
 	if (dws->caps & DW_SPI_CAP_DFS32)
 		host->bits_per_word_mask = SPI_BPW_RANGE_MASK(4, 32);
 	else

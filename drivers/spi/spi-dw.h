@@ -32,6 +32,7 @@
 /* DW SPI controller capabilities */
 #define DW_SPI_CAP_CS_OVERRIDE		BIT(0)
 #define DW_SPI_CAP_DFS32		BIT(1)
+#define DW_SPI_CAP_QUAD_SPI		BIT(2)
 
 /* Register offsets (Generic for both DWC APB SSI and DWC SSI IP-cores) */
 #define DW_SPI_CTRLR0			0x00
@@ -61,6 +62,7 @@
 #define DW_SPI_DR			0x60
 #define DW_SPI_RX_SAMPLE_DLY		0xf0
 #define DW_SPI_CS_OVERRIDE		0xf4
+#define DW_SPI_SPI_CTRLR0		0xf4 /* sic */
 
 /* Bit fields in CTRLR0 (DWC APB SSI) */
 #define DW_PSSI_CTRLR0_DFS_MASK			GENMASK(3, 0)
@@ -95,6 +97,14 @@
 #define DW_HSSI_CTRLR0_SRL			BIT(13)
 #define DW_HSSI_CTRLR0_MST			BIT(31)
 
+#define DW_PSSI_CTRLR0_SPI_FRF_MASK		GENMASK(22, 21)
+#define DW_SPI_SPI_FRF_STD			0x0
+#define DW_SPI_SPI_FRF_DUAL			0x1
+#define DW_SPI_SPI_FRF_QUAD			0x2
+#define DW_SPI_SPI_FRF_OCTAL			0x3
+
+#define DW_PSSI_CTRLR0_SSTE			BIT(24)
+
 /* Bit fields in CTRLR1 */
 #define DW_SPI_NDF_MASK				GENMASK(15, 0)
 
@@ -121,6 +131,17 @@
 #define DW_SPI_DMACR_RDMAE			BIT(0)
 #define DW_SPI_DMACR_TDMAE			BIT(1)
 
+/* Bit fields in SPI_CTRLR0 */
+#define DW_SPI_SPI_CTRLR0_TRANS_TYPE_MASK	GENMASK(1,0)
+#define DW_SPI_SPI_CTRLR0_TRANS_TYPE_SISA	0x0	/* Std inst, std addr */
+#define DW_SPI_SPI_CTRLR0_TRANS_TYPE_SIEA	0x1	/* Std inst, enh addr */
+#define DW_SPI_SPI_CTRLR0_TRANS_TYPE_EIEA	0x2	/* Enh inst, enh addr */
+#define DW_SPI_SPI_CTRLR0_ADDR_L_MASK		GENMASK(5,2)
+#define DW_SPI_SPI_CTRLR0_ADDR_L(l)		((l)>>2)
+#define DW_SPI_SPI_CTRLR0_INST_L_MASK		GENMASK(9,8)
+#define DW_SPI_SPI_CTRLR0_INST_L(l)		(((l) == 16) ? 3 : ((l) == 8) ? 2 : ((l) == 4) ? 1 : 0)
+#define DW_SPI_SPI_CTRLR0_WAIT_CYCLES_MASK	GENMASK(15,11)
+
 /* Mem/DMA operations helpers */
 #define DW_SPI_WAIT_RETRIES			5
 #define DW_SPI_BUF_SIZE \
@@ -133,6 +154,11 @@
 struct dw_spi_cfg {
 	u8 tmode;
 	u8 dfs;
+	u8 spi_frf;
+	u8 trans_type;
+	u8 inst_l;
+	u8 addr_l;
+	u8 wait_cycles;
 	u32 ndf;
 	u32 freq;
 };
