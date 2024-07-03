@@ -170,6 +170,8 @@ static void dw_reader(struct dw_spi *dws)
 			dws->rx += dws->n_bytes;
 		}
 		--dws->rx_len;
+		if (dws->rx_len == 0)
+			pr_err("lastrx: %x\n", rxw);
 	}
 }
 
