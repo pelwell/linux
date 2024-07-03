@@ -472,6 +472,8 @@ static int dw_spi_dma_setup(struct dw_spi *dws, struct spi_transfer *xfer)
 	u16 imr, dma_ctrl;
 	int ret;
 
+	pr_err("dsds: tx_buf %d, rx_buf %d, len %d\n", !!xfer->tx_buf, !!xfer->rx_buf, xfer->len);
+
 	/* Setup DMA channels */
 	if (xfer->tx_buf) {
 		ret = dw_spi_dma_config_tx(dws);
@@ -512,6 +514,8 @@ static int dw_spi_dma_transfer_all(struct dw_spi *dws,
 				   struct spi_transfer *xfer)
 {
 	int ret;
+
+	pr_err("dsdta: tx_buf %d, rx_buf %d, len %d\n", !!xfer->tx_buf, !!xfer->rx_buf, xfer->len);
 
 	/* Submit the DMA Tx transfer if required */
 	if (xfer->tx_buf) {

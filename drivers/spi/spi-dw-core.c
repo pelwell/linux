@@ -213,6 +213,17 @@ static irqreturn_t dw_spi_transfer_handler(struct dw_spi *dws)
 {
 	u16 irq_status = dw_readl(dws, DW_SPI_ISR);
 
+#if 0
+	pr_err("dsth(%x, %x) - tx %d:%d/%d, rx %d:%d/%d\n", irq_status,
+		readl_relaxed(dws->regs + DW_SPI_IMR),
+		dws->tx_len,
+		readl_relaxed(dws->regs + DW_SPI_TXFLR),
+		readl_relaxed(dws->regs + DW_SPI_TXFTLR),
+		dws->rx_len,
+		readl_relaxed(dws->regs + DW_SPI_RXFLR),
+		readl_relaxed(dws->regs + DW_SPI_RXFTLR)
+	);
+#endif
 	if (dw_spi_check_status(dws, false)) {
 		spi_finalize_current_transfer(dws->host);
 		return IRQ_HANDLED;
@@ -247,6 +258,7 @@ static irqreturn_t dw_spi_transfer_handler(struct dw_spi *dws)
 		if (!dws->tx_len)
 			dw_spi_mask_intr(dws, DW_SPI_INT_TXEI);
 		dw_writer(dws);
+		//dw_writel(dws, DW_SPI_TXFTLR, 1);
 	}
 
 	return IRQ_HANDLED;
@@ -258,6 +270,7 @@ static irqreturn_t dw_spi_irq(int irq, void *dev_id)
 	struct dw_spi *dws = spi_controller_get_devdata(host);
 	u16 irq_status = dw_readl(dws, DW_SPI_ISR) & DW_SPI_INT_MASK;
 
+	pr_err("dsi: %x\n", irq_status);
 	if (!irq_status)
 		return IRQ_NONE;
 
@@ -378,6 +391,7 @@ static void dw_spi_irq_setup(struct dw_spi *dws)
 	u16 level;
 	u8 imask;
 
+	pr_err("dsis: tx_len %d, rx_len %d\n", dws->tx_len, dws->rx_len);
 	/*
 	 * Originally Tx and Rx data lengths match. Rx FIFO Threshold level
 	 * will be adjusted at the final stage of the IRQ-based SPI transfer
@@ -456,6 +470,7 @@ static int dw_spi_transfer_one(struct spi_controller *host,
 		roundup_pow_of_two(DIV_ROUND_UP(transfer->bits_per_word,
 						BITS_PER_BYTE));
 
+	pr_err("dsto(tx %d, rx %d, len %d)\n", !!transfer->tx_buf, !!transfer->rx_buf, transfer->len);
 	dws->tx = (void *)transfer->tx_buf;
 	dws->tx_len = transfer->len / dws->n_bytes;
 	dws->rx = transfer->rx_buf;
@@ -486,7 +501,7 @@ static int dw_spi_transfer_one(struct spi_controller *host,
 			"TR", "TO", "RO", "EPROM_READ"
 		};
 		if (!(tmode_seen & (1 << cfg.tmode))) {
-			tmode_seen |= (1 << cfg.tmode);
+			//tmode_seen |= (1 << cfg.tmode);
 			pr_err("DWC SPI: tmode %s\n", tmode_names[cfg.tmode]);
 		}
 	}
