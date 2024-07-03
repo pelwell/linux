@@ -270,7 +270,7 @@ static irqreturn_t dw_spi_irq(int irq, void *dev_id)
 	struct dw_spi *dws = spi_controller_get_devdata(host);
 	u16 irq_status = dw_readl(dws, DW_SPI_ISR) & DW_SPI_INT_MASK;
 
-	pr_err("dsi: %x\n", irq_status);
+	//pr_err("dsi: %x\n", irq_status);
 	if (!irq_status)
 		return IRQ_NONE;
 
@@ -391,7 +391,7 @@ static void dw_spi_irq_setup(struct dw_spi *dws)
 	u16 level;
 	u8 imask;
 
-	pr_err("dsis: tx_len %d, rx_len %d\n", dws->tx_len, dws->rx_len);
+	//pr_err("dsis: tx_len %d, rx_len %d\n", dws->tx_len, dws->rx_len);
 	/*
 	 * Originally Tx and Rx data lengths match. Rx FIFO Threshold level
 	 * will be adjusted at the final stage of the IRQ-based SPI transfer
@@ -501,7 +501,7 @@ static int dw_spi_transfer_one(struct spi_controller *host,
 			"TR", "TO", "RO", "EPROM_READ"
 		};
 		if (!(tmode_seen & (1 << cfg.tmode))) {
-			//tmode_seen |= (1 << cfg.tmode);
+			tmode_seen |= (1 << cfg.tmode);
 			pr_err("DWC SPI: tmode %s\n", tmode_names[cfg.tmode]);
 		}
 	}
