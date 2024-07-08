@@ -27,6 +27,9 @@ static int cxd2880_spi_device_write(struct cxd2880_spi *spi,
 	memset(&tx, 0, sizeof(tx));
 	tx.tx_buf = data;
 	tx.len = size;
+	// tx.tx_buf = NULL;
+	// tx.len = 56400;
+	// tx.rx_buf = kmalloc(tx.len, GFP_KERNEL);
 
 	spi_message_init(&msg);
 	spi_message_add_tail(&tx, &msg);
@@ -46,6 +49,7 @@ static int cxd2880_spi_device_write_read(struct cxd2880_spi *spi,
 {
 	struct cxd2880_spi_device *spi_device = NULL;
 	int result = 0;
+	static u8 *tempbuf;
 
 	if (!spi || !spi->user || !tx_data ||
 	    !tx_size || !rx_data || !rx_size)
@@ -53,8 +57,13 @@ static int cxd2880_spi_device_write_read(struct cxd2880_spi *spi,
 
 	spi_device = spi->user;
 
+	if (!tempbuf)
+	{
+		tempbuf = kmalloc(56400, GFP_KERNEL);
+		pr_err("tempbuf at %px\n", tempbuf);
+	}
 	result = spi_write_then_read(spi_device->spi, tx_data,
-				     tx_size, rx_data, rx_size);
+				     tx_size, tempbuf, 56400);
 	if (result < 0)
 		return -EIO;
 

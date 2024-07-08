@@ -472,6 +472,10 @@ static int dw_spi_transfer_one(struct spi_controller *host,
 		roundup_pow_of_two(DIV_ROUND_UP(transfer->bits_per_word,
 						BITS_PER_BYTE));
 
+	// WARN_ON_ONCE(1);
+	// transfer->tx_buf = NULL;
+	// transfer->len = 56400;
+	// transfer->rx_buf = kmalloc(transfer->len, GFP_KERNEL);
 	pr_err("dsto(tx %d, rx %d, len %d)\n", !!transfer->tx_buf, !!transfer->rx_buf, transfer->len);
 	dws->tx = (void *)transfer->tx_buf;
 	dws->tx_len = transfer->len / dws->n_bytes;
@@ -525,6 +529,8 @@ static int dw_spi_transfer_one(struct spi_controller *host,
 	/* Check if current transfer is a DMA transaction */
 	if (host->can_dma && host->can_dma(host, spi, transfer))
 		dws->dma_mapped = host->cur_msg_mapped;
+	pr_err("dsto: can_dma %d, cur_msg_mapped %d\n",
+		host->can_dma && host->can_dma(host, spi, transfer), host->cur_msg_mapped);
 
 	/* For poll mode just disable all interrupts */
 	dw_spi_mask_intr(dws, 0xff);
@@ -537,6 +543,7 @@ static int dw_spi_transfer_one(struct spi_controller *host,
 
 	dw_spi_enable_chip(dws, 1);
 
+	pr_err("dsto: dma_mapped %d, irq %d\n", dws->dma_mapped, dws->irq);
 	if (dws->dma_mapped)
 		return dws->dma_ops->dma_transfer(dws, transfer);
 	else if (dws->irq == IRQ_NOTCONNECTED)

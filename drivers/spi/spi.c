@@ -1027,6 +1027,7 @@ static int spi_map_buf_attrs(struct spi_controller *ctlr, struct device *dev,
 		desc_len = min_t(unsigned long, max_seg_size, PAGE_SIZE);
 		sgs = DIV_ROUND_UP(len + offset_in_page(buf), desc_len);
 	} else if (virt_addr_valid(buf)) {
+		pr_err("%s: mss %x, mdl %x\n", __func__, (u32)max_seg_size, (u32)ctlr->max_dma_len);
 		desc_len = min_t(size_t, max_seg_size, ctlr->max_dma_len);
 		sgs = DIV_ROUND_UP(len, desc_len);
 	} else {
@@ -4432,7 +4433,7 @@ int spi_write_then_read(struct spi_device *spi,
 	 * using the pre-allocated buffer or the transfer is too large.
 	 */
 	if ((n_tx + n_rx) > SPI_BUFSIZ || !mutex_trylock(&lock)) {
-		local_buf = kmalloc(max((unsigned)SPI_BUFSIZ, n_tx + n_rx),
+		local_buf = kmalloc(max((unsigned)SPI_BUFSIZ, n_tx + 3 + n_rx),
 				    GFP_KERNEL | GFP_DMA);
 		if (!local_buf)
 			return -ENOMEM;
@@ -4453,7 +4454,7 @@ int spi_write_then_read(struct spi_device *spi,
 
 	memcpy(local_buf, txbuf, n_tx);
 	x[0].tx_buf = local_buf;
-	x[1].rx_buf = local_buf + n_tx;
+	x[1].rx_buf = local_buf + ALIGN(n_tx, 4);
 
 	/* Do the I/O */
 	status = spi_sync(spi, &message);

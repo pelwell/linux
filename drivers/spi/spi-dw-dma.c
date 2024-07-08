@@ -48,7 +48,8 @@ static void dw_spi_dma_maxburst_init(struct dw_spi *dws)
 	else
 		max_burst = DW_SPI_RX_BURST_LEVEL;
 
-	dws->rxburst = 1; // XXX min(max_burst, def_burst);
+	dws->rxburst = min(max_burst, def_burst);
+	pr_err("rxburst = min(%d,%d) = %d\n", max_burst, def_burst, dws->rxburst);
 	dw_writel(dws, DW_SPI_DMARDLR, dws->rxburst - 1);
 
 	ret = dma_get_slave_caps(dws->txchan, &caps);
@@ -69,6 +70,7 @@ static void dw_spi_dma_maxburst_init(struct dw_spi *dws)
 	 * FIFO depth with a value twice bigger than the Tx burst length.
 	 */
 	dws->txburst = min(max_burst, def_burst);
+	pr_err("txburst = min(%d,%d) = %d\n", max_burst, def_burst, dws->rxburst);
 	dw_writel(dws, DW_SPI_DMATDLR, dws->txburst);
 }
 
@@ -515,7 +517,7 @@ static int dw_spi_dma_transfer_all(struct dw_spi *dws,
 {
 	int ret;
 
-	pr_err("dsdta: tx_buf %d, rx_buf %d, len %d\n", !!xfer->tx_buf, !!xfer->rx_buf, xfer->len);
+	pr_err("dsdta: tx_buf %px, rx_buf %px, len %d\n", xfer->tx_buf, xfer->rx_buf, xfer->len);
 
 	/* Submit the DMA Tx transfer if required */
 	if (xfer->tx_buf) {
@@ -657,7 +659,8 @@ static int dw_spi_dma_transfer(struct dw_spi *dws, struct spi_transfer *xfer)
 
 	nents = max(xfer->tx_sg.nents, xfer->rx_sg.nents);
 
-	dw_writel(dws, DW_SPI_DMARDLR, xfer->tx_buf ? (dws->rxburst - 1) : 0);
+	//dw_writel(dws, DW_SPI_DMARDLR, xfer->tx_buf ? (dws->rxburst - 1) : 0);
+	pr_err("dsdt(%x) - rxburst %x\n", dw_readl(dws, DW_SPI_DMARDLR), dws->rxburst);
 
 	/*
 	 * Execute normal DMA-based transfer (which submits the Rx and Tx SG

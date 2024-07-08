@@ -611,6 +611,8 @@ int dma_get_slave_caps(struct dma_chan *chan, struct dma_slave_caps *caps)
 	 */
 	if (device->device_caps)
 		device->device_caps(chan, caps);
+	pr_err("%s: max_burst %d, max_sg_burst %d -> %d, %d\n", __func__, device->max_burst, device->max_sg_burst,
+		caps->max_burst, caps->max_sg_burst);
 
 	return 0;
 }

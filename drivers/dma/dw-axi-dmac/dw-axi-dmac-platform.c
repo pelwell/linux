@@ -713,6 +713,7 @@ static int dw_axi_dma_set_hw_desc(struct axi_dma_chan *chan,
 	case DMA_DEV_TO_MEM:
 		reg_width = __ffs(chan->config.src_addr_width);
 		/* Prevent partial access units getting lost */
+		//pr_err("DEV_TO_MEM: reg_width %d, mem_width %d\n", reg_width, mem_width);
 		if (mem_width > reg_width)
 			mem_width = reg_width;
 		device_addr = phys_to_dma(chan->chip->dev, chan->config.src_addr);
@@ -737,6 +738,7 @@ static int dw_axi_dma_set_hw_desc(struct axi_dma_chan *chan,
 
 	ctlhi = CH_CTL_H_LLI_VALID;
 
+	//pr_err("restrict_axi_burst_len %d, axi_rw_burst_len %d\n", chan->chip->dw->hdata->restrict_axi_burst_len, chan->chip->dw->hdata->axi_rw_burst_len);
 	if (chan->chip->dw->hdata->restrict_axi_burst_len) {
 		burst_len = chan->chip->dw->hdata->axi_rw_burst_len;
 		ctlhi |= CH_CTL_H_ARLEN_EN | CH_CTL_H_AWLEN_EN |
@@ -746,6 +748,7 @@ static int dw_axi_dma_set_hw_desc(struct axi_dma_chan *chan,
 
 	hw_desc->lli->ctl_hi = cpu_to_le32(ctlhi);
 
+	pr_err("CTL: %08x_%08x\n", ctlhi, ctllo);
 	if (chan->direction == DMA_MEM_TO_DEV) {
 		write_desc_sar(hw_desc, mem_addr);
 		write_desc_dar(hw_desc, device_addr);
@@ -788,6 +791,7 @@ static size_t calculate_block_len(struct axi_dma_chan *chan,
 	default:
 		block_len = 0;
 	}
+	pr_err("%s(%llx, %x) - abt %x -> %x\n", __func__, (u64)dma_addr, (u32)buf_len, (u32)axi_block_ts, (u32)block_len);
 
 	return block_len;
 }
@@ -901,6 +905,7 @@ dw_axi_dma_chan_prep_slave_sg(struct dma_chan *dchan, struct scatterlist *sgl,
 	if (axi_block_len == 0)
 		return NULL;
 
+	pr_err("%s: abl %x\n", __func__, (u32)axi_block_len);
 	for_each_sg(sgl, sg, sg_len, i)
 		num_sgs += DIV_ROUND_UP(sg_dma_len(sg), axi_block_len);
 
@@ -923,6 +928,7 @@ dw_axi_dma_chan_prep_slave_sg(struct dma_chan *dchan, struct scatterlist *sgl,
 
 		do {
 			hw_desc = &desc->hw_desc[loop++];
+			pr_err("%d: %llx (%x)\n", i, mem, segment_len);
 			status = dw_axi_dma_set_hw_desc(chan, hw_desc, mem, segment_len);
 			if (status < 0)
 				goto err_desc_get;
@@ -968,7 +974,7 @@ dma_chan_prep_dma_memcpy(struct dma_chan *dchan, dma_addr_t dst_adr,
 	u64 llp = 0;
 	u8 lms = 0; /* Select AXI0 master for LLI fetching */
 
-	dev_dbg(chan2dev(chan), "%s: memcpy: src: %pad dst: %pad length: %zd flags: %#lx",
+	dev_err(chan2dev(chan), "%s: memcpy: src: %pad dst: %pad length: %zd flags: %#lx",
 		axi_chan_name(chan), &src_adr, &dst_adr, len, flags);
 
 	max_block_ts = chan->chip->dw->hdata->block_size[chan->id];
@@ -1020,6 +1026,7 @@ dma_chan_prep_dma_memcpy(struct dma_chan *dchan, dma_addr_t dst_adr,
 				CH_CTL_H_AWLEN_EN |
 				burst_len << CH_CTL_H_AWLEN_POS);
 		}
+		pr_err("ctl_hi = %x\n", hw_desc->lli->ctl_hi);
 		hw_desc->lli->ctl_hi = cpu_to_le32(reg);
 
 		reg = (DWAXIDMAC_BURST_TRANS_LEN_4 << CH_CTL_L_DST_MSIZE_POS |
@@ -1459,7 +1466,9 @@ static int parse_device_properties(struct axi_dma_chip *chip)
 
 		chip->dw->hdata->restrict_axi_burst_len = true;
 		chip->dw->hdata->axi_rw_burst_len = tmp;
-	}
+		pr_err("%s: axi_rw_burst_len -> %d\n", __func__, tmp);
+	} else
+		pr_err("%s: axi_rw_burst_len = %d (r %d)\n", __func__, chip->dw->hdata->axi_rw_burst_len, chip->dw->hdata->restrict_axi_burst_len);
 
 	return 0;
 }
@@ -1470,6 +1479,7 @@ static int dw_probe(struct platform_device *pdev)
 	struct dw_axi_dma *dw;
 	struct dw_axi_dma_hcfg *hdata;
 	struct reset_control *resets;
+	unsigned int max_seg_size;
 	unsigned int flags;
 	u32 i;
 	int ret;
@@ -1585,9 +1595,20 @@ static int dw_probe(struct platform_device *pdev)
 	 * Synopsis DesignWare AxiDMA datasheet mentioned Maximum
 	 * supported blocks is 1024. Device register width is 4 bytes.
 	 * Therefore, set constraint to 1024 * 4.
+	 * However, if all channels specify a greater value, use that instead.
 	 */
+
 	dw->dma.dev->dma_parms = &dw->dma_parms;
-	dma_set_max_seg_size(&pdev->dev, MAX_BLOCK_SIZE);
+	max_seg_size = ~0;
+	for (i = 0; i < dw->hdata->nr_channels; i++) {
+		if (chip->dw->hdata->block_size[i])
+			max_seg_size = min(chip->dw->hdata->block_size[i], max_seg_size);
+	}
+	if (max_seg_size == ~0)
+		max_seg_size = MAX_BLOCK_SIZE;
+
+	dma_set_max_seg_size(&pdev->dev, max_seg_size);
+
 	platform_set_drvdata(pdev, chip);
 
 	pm_runtime_enable(chip->dev);
