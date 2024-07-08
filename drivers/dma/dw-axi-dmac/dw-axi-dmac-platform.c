@@ -713,9 +713,10 @@ static int dw_axi_dma_set_hw_desc(struct axi_dma_chan *chan,
 	case DMA_DEV_TO_MEM:
 		reg_width = __ffs(chan->config.src_addr_width);
 		/* Prevent partial access units getting lost */
-		//pr_err("DEV_TO_MEM: reg_width %d, mem_width %d\n", reg_width, mem_width);
-		if (mem_width > reg_width)
-			mem_width = reg_width;
+		// This is about having < mem_width sitting in the controller.
+		pr_err("DEV_TO_MEM: reg_width %d, mem_width %d, len %x\n", reg_width, mem_width, (u32)len);
+		while (len % (1 << mem_width ) != 0)
+			mem_width--;
 		device_addr = phys_to_dma(chan->chip->dev, chan->config.src_addr);
 		ctllo = reg_width << CH_CTL_L_SRC_WIDTH_POS |
 			mem_width << CH_CTL_L_DST_WIDTH_POS |

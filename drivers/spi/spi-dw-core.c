@@ -245,6 +245,7 @@ static irqreturn_t dw_spi_transfer_handler(struct dw_spi *dws)
 			spi_finalize_current_transfer(dws->host);
 		} else if (dws->rx_len <= dw_readl(dws, DW_SPI_RXFTLR)) {
 			dw_writel(dws, DW_SPI_RXFTLR, dws->rx_len - 1);
+			pr_err("RXFTLR -> %x\n", readl_relaxed(dws->regs + DW_SPI_RXFTLR));
 		}
 	} else if (!dws->tx_len) {
 		dw_spi_mask_intr(dws, DW_SPI_INT_TXEI);
@@ -402,6 +403,7 @@ static void dw_spi_irq_setup(struct dw_spi *dws)
 	level = min_t(unsigned int, dws->fifo_len / 2, dws->tx_len ? dws->tx_len : dws->rx_len);
 	dw_writel(dws, DW_SPI_TXFTLR, level);
 	dw_writel(dws, DW_SPI_RXFTLR, level - 1);
+	pr_err("dsis: RXFTLR %x\n", readl_relaxed(dws->regs + DW_SPI_RXFTLR));
 
 	dws->transfer_handler = dw_spi_transfer_handler;
 

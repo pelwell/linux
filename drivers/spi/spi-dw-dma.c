@@ -430,6 +430,7 @@ static int dw_spi_dma_config_rx(struct dw_spi *dws)
 {
 	struct dma_slave_config rxconf;
 
+	pr_err("%s: n_bytes %d\n", __func__, dws->n_bytes);
 	memset(&rxconf, 0, sizeof(rxconf));
 	rxconf.direction = DMA_DEV_TO_MEM;
 	rxconf.src_addr = dws->dma_addr;
