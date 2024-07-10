@@ -49,6 +49,7 @@ static void dw_spi_dma_maxburst_init(struct dw_spi *dws)
 		max_burst = DW_SPI_RX_BURST_LEVEL;
 
 	dws->rxburst = min(max_burst, def_burst);
+	pr_err("rxburst = min(%d,%d) = %d\n", max_burst, def_burst, dws->rxburst);
 	dw_writel(dws, DW_SPI_DMARDLR, dws->rxburst - 1);
 
 	ret = dma_get_slave_caps(dws->txchan, &caps);

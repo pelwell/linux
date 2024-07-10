@@ -4432,7 +4432,7 @@ int spi_write_then_read(struct spi_device *spi,
 	 * using the pre-allocated buffer or the transfer is too large.
 	 */
 	if ((n_tx + n_rx) > SPI_BUFSIZ || !mutex_trylock(&lock)) {
-		local_buf = kmalloc(max((unsigned)SPI_BUFSIZ, n_tx + n_rx),
+		local_buf = kmalloc(max((unsigned)SPI_BUFSIZ, ALIGN(n_tx, 4) + n_rx),
 				    GFP_KERNEL | GFP_DMA);
 		if (!local_buf)
 			return -ENOMEM;
@@ -4453,7 +4453,7 @@ int spi_write_then_read(struct spi_device *spi,
 
 	memcpy(local_buf, txbuf, n_tx);
 	x[0].tx_buf = local_buf;
-	x[1].rx_buf = local_buf + n_tx;
+	x[1].rx_buf = local_buf + ALIGN(n_tx, 4);
 
 	/* Do the I/O */
 	status = spi_sync(spi, &message);
