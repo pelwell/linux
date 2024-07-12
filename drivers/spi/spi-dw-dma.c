@@ -6,6 +6,7 @@
  */
 
 #include <linux/completion.h>
+#include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <linux/dmaengine.h>
 #include <linux/irqreturn.h>
@@ -534,6 +535,8 @@ static int dw_spi_dma_transfer_all(struct dw_spi *dws,
 	if (xfer->tx_buf) {
 		dma_async_issue_pending(dws->txchan);
 	} else {
+		usleep_range(5,10);
+
 		/* Write something to the TX FIFO to start the transfer */
 		dw_writel(dws, DW_SPI_DR, 0);
 	}
